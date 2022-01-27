@@ -8,7 +8,7 @@ import { detachAll, ExtensionSlot, usePatient, useSessionUser } from '@openmrs/e
 import ActionMenu from './action-menu.component';
 import { useOfflineVisitForPatient } from '../offline';
 import { useContextWorkspace } from '../hooks/useContextWindowSize';
-import { WorkspaceWindowState } from '../types';
+import { closeAllWorkspaces, WorkspaceWindowState } from '@openmrs/esm-patient-common-lib';
 import WorkspaceNotification from './workspace-notification.component';
 
 interface PatientChartParams {
@@ -25,15 +25,13 @@ const PatientChart: React.FC<RouteComponentProps<PatientChartParams>> = ({ match
   const { windowSize, openWindows } = useContextWorkspace();
 
   useEffect(() => {
-    detachAll('patient-chart-workspace-slot');
+    closeAllWorkspaces();
   }, [patientUuid]);
-
-  const mainClassName = `omrs-main-content ${styles.chartContainer}`;
 
   useOfflineVisitForPatient(patientUuid, sessionUser?.sessionLocation?.uuid);
 
   return (
-    <main className={mainClassName}>
+    <main className={`omrs-main-content ${styles.chartContainer}`}>
       {isLoading ? (
         <Loader />
       ) : (

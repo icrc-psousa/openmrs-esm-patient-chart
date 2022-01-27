@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RouteComponentProps } from 'react-router-dom';
 import { Button, Header, HeaderGlobalBar, HeaderName } from 'carbon-components-react';
@@ -8,9 +8,9 @@ import Minimize16 from '@carbon/icons-react/es/minimize/16';
 import { ExtensionSlot, useLayoutType, useBodyScrollLock } from '@openmrs/esm-framework';
 import { isDesktop } from '../utils';
 import { useContextWorkspace } from '../hooks/useContextWindowSize';
-import { useWorkspace } from '../hooks/useWorkspace';
-import { patientChartWorkspaceHeaderSlot, patientChartWorkspaceSlot } from '../constants';
-import { WorkspaceWindowState } from '../types';
+import { useWorkspaces } from '../hooks/useWorkspaces';
+import { patientChartWorkspaceHeaderSlot } from '../constants';
+import { renderWorkspace, WorkspaceWindowState } from '@openmrs/esm-patient-common-lib';
 import styles from './context-workspace.scss';
 
 interface ContextWorkspaceParams {
@@ -21,32 +21,39 @@ const ContextWorkspace: React.FC<RouteComponentProps<ContextWorkspaceParams>> = 
   const { t } = useTranslation();
   const layout = useLayoutType();
   const isTablet = layout === 'tablet';
+  const workspaceRef = useRef<HTMLDivElement>();
 
   const { patientUuid } = match.params;
-  const { active, title, closeWorkspace, extensions } = useWorkspace();
+  const { active, workspaces } = useWorkspaces();
   const { windowSize, updateWindowSize } = useContextWorkspace();
   const { size } = windowSize;
+
+  const activeWorkspace = workspaces[0];
 
   const hidden = size === WorkspaceWindowState.hidden;
   const maximized = size === WorkspaceWindowState.maximized;
   const normal = size === WorkspaceWindowState.normal;
 
   const props = React.useMemo(
-    () => ({ closeWorkspace, patientUuid, isTablet }),
-    [closeWorkspace, isTablet, patientUuid],
+    () => ({ closeWorkspace: activeWorkspace.closeWorkspace, patientUuid, isTablet }),
+    [activeWorkspace, isTablet, patientUuid],
   );
 
-  const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
+  const [isWorkspaceWindowOpen, setIsWorkspaceWindowOpen] = useState(false);
 
   useEffect(() => {
-    if (extensions.length && (maximized || normal)) {
-      setIsWorkspaceOpen(true);
-    } else if (extensions.length && hidden) {
-      setIsWorkspaceOpen(false);
+    if (active && (maximized || normal)) {
+      setIsWorkspaceWindowOpen(true);
+    } else if (workspaces.length && hidden) {
+      setIsWorkspaceWindowOpen(false);
     } else {
-      setIsWorkspaceOpen(false);
+      setIsWorkspaceWindowOpen(false);
     }
-  }, [extensions.length, hidden, maximized, normal]);
+  }, [workspaces.length, hidden, maximized, normal]);
+
+  useEffect(() => {
+    return renderWorkspace(workspaceRef.current, activeWorkspace);
+  }, [activeWorkspace]);
 
   useBodyScrollLock(active && !isDesktop(layout));
 
@@ -57,7 +64,7 @@ const ContextWorkspace: React.FC<RouteComponentProps<ContextWorkspaceParams>> = 
   return (
     <aside
       className={`${styles.container} ${maximized ? `${styles.maximized}` : undefined} ${
-        isWorkspaceOpen
+        isWorkspaceWindowOpen
           ? `${styles.show}`
           : `${styles.hide}
       }`
@@ -67,7 +74,7 @@ const ContextWorkspace: React.FC<RouteComponentProps<ContextWorkspaceParams>> = 
         aria-label="Workspace Title"
         className={`${styles.header} ${maximized ? `${styles.fullWidth}` : `${styles.dynamicWidth}`}`}
       >
-        <HeaderName prefix="">{title}</HeaderName>
+        <HeaderName prefix="">{activeWorkspace?.title}</HeaderName>
         <HeaderGlobalBar>
           <ExtensionSlot extensionSlotName={patientChartWorkspaceHeaderSlot} state={props} />
           <Button
@@ -89,11 +96,9 @@ const ContextWorkspace: React.FC<RouteComponentProps<ContextWorkspaceParams>> = 
           />
         </HeaderGlobalBar>
       </Header>
-      <ExtensionSlot
-        className={`${styles.fixed} ${maximized && !isTablet ? `${styles.fullWidth}` : `${styles.dynamicWidth}`}`}
-        extensionSlotName={patientChartWorkspaceSlot}
-        state={props}
-      />
+      <div className={`${styles.fixed} ${maximized && !isTablet ? `${styles.fullWidth}` : `${styles.dynamicWidth}`}`}>
+        <div ref={workspaceRef}></div>
+      </div>
     </aside>
   );
 };

@@ -1,4 +1,8 @@
-import { getStartedVisit, newWorkspaceItem, WorkspaceItem } from '@openmrs/esm-framework';
+//
+// This is only used from immunizations-sequence-table.tsx. I suspect it is not used at all.
+//
+
+import { getStartedVisit } from '@openmrs/esm-framework';
 import isEmpty from 'lodash-es/isEmpty';
 
 export interface DataCaptureComponentProps {
@@ -8,28 +12,19 @@ export interface DataCaptureComponentProps {
   closeComponent: () => void;
 }
 
+
 export function openWorkspaceTab<TProps = DataCaptureComponentProps, TParams = any>(
   componentToAdd: React.FC<TProps>,
   componentName: string,
   params = {} as TParams,
   requiresVisit = true,
 ): void {
+  console.log("here!");
   if (isEmpty(getStartedVisit.value) && requiresVisit) {
     window.dispatchEvent(
       new CustomEvent('visit-dialog', {
         detail: { type: 'prompt' },
       }),
     );
-  } else {
-    newWorkspaceItem({
-      component: componentToAdd,
-      name: componentName,
-      props: {
-        match: { params },
-      },
-      inProgress: false,
-      validations: (workspaceTabs: Array<WorkspaceItem>) =>
-        workspaceTabs.findIndex((tab) => tab.component === componentToAdd),
-    });
   }
 }

@@ -7,9 +7,9 @@ import { ExtensionSlot, useLayoutType } from '@openmrs/esm-framework';
 import { HeaderPanel, Button } from 'carbon-components-react';
 import { isDesktop } from '../utils';
 import { useContextWorkspace } from '../hooks/useContextWindowSize';
-import { useWorkspace } from '../hooks/useWorkspace';
+import { useWorkspaces } from '../hooks/useWorkspaces';
 import { useTranslation } from 'react-i18next';
-import { WorkspaceWindowState } from '../types';
+import { WorkspaceWindowState } from '@openmrs/esm-patient-common-lib';
 
 interface ActionMenuInterface {
   open: boolean;
@@ -21,7 +21,7 @@ export const CHARTS_ACTION_MENU_ITEMS_SLOT = 'action-menu-items-slot';
 export const ActionMenu: React.FC<ActionMenuInterface> = ({ open }) => {
   const { t } = useTranslation();
   const layout = useLayoutType();
-  const { windowState: screenMode, active } = useWorkspace();
+  const { windowState: screenMode, active } = useWorkspaces();
   const { openWindows, updateWindowSize, windowSize } = useContextWorkspace();
 
   const checkViewMode = () => {

@@ -1,8 +1,6 @@
-import { useAssignedExtensionIds } from '@openmrs/esm-framework';
 import React, { createContext, useContext, useMemo, useEffect, useCallback } from 'react';
-import { patientChartWorkspaceSlot } from '../constants';
-import { useWorkspace } from '../hooks/useWorkspace';
-import { WorkspaceWindowState } from '../types';
+import { useWorkspaces } from './useWorkspaces';
+import { WorkspaceWindowState } from '@openmrs/esm-patient-common-lib';
 
 interface WindowSize {
   size: WorkspaceWindowState;
@@ -35,10 +33,9 @@ export const useContextWorkspace = () => {
 };
 
 export const ContextWindowSizeProvider: React.FC = ({ children }) => {
-  const extensions = useAssignedExtensionIds(patientChartWorkspaceSlot);
   const initialValue: WindowSize = { size: WorkspaceWindowState.normal };
   const [contextWorkspaceWindowSize, updateContextWorkspaceWindowSize] = React.useReducer(reducer, initialValue);
-  const { windowState: screenMode } = useWorkspace();
+  const { workspaces: extensions, windowState: screenMode } = useWorkspaces();
 
   useEffect(() => {
     if (extensions.length > 0 && screenMode === WorkspaceWindowState.maximized) {
