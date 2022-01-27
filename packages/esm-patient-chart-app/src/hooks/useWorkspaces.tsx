@@ -1,21 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { WorkspaceWindowState } from '@openmrs/esm-patient-common-lib';
-import { getWorkspaceStore, closeWorkspace, OpenWorkspaceInfo } from '@openmrs/esm-patient-common-lib'; 
+import { getWorkspaceStore, closeWorkspace, OpenWorkspace } from '@openmrs/esm-patient-common-lib'; 
 
 export interface WorkspacesInfo {
   active: boolean;
   windowState: WorkspaceWindowState;
   workspaces: Array<Workspace>;
-  workspaceNeedingConfirmationToOpen: OpenWorkspaceInfo;
+  workspaceNeedingConfirmationToOpen: OpenWorkspace;
 }
 
-export interface Workspace extends OpenWorkspaceInfo {
+export interface Workspace extends OpenWorkspace {
   closeWorkspace(): void;
 }
 
 export function useWorkspaces(): WorkspacesInfo {
   const [workspaces, setWorkspaces] = useState<Array<Workspace>>([]);
-  const [workspaceNeedingConfirmationToOpen, setWorkspaceNeedingConfirmationToOpen] = useState<OpenWorkspaceInfo>(null);
+  const [workspaceNeedingConfirmationToOpen, setWorkspaceNeedingConfirmationToOpen] = useState<OpenWorkspace>(null);
 
   useEffect(() => {
     getWorkspaceStore().subscribe((state) => {

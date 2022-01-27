@@ -3,12 +3,12 @@ import { mountRootParcel, Parcel } from "single-spa";
 import { WorkspaceWindowState } from ".";
 
 export interface WorkspaceStoreState {
-  openWorkspaces: Array<OpenWorkspaceInfo>;
-  workspaceNeedingConfirmationToOpen: OpenWorkspaceInfo | null;
+  openWorkspaces: Array<OpenWorkspace>;
+  workspaceNeedingConfirmationToOpen: OpenWorkspace | null;
 }
 
-export interface OpenWorkspaceInfo extends WorkspaceRegistration {
-  props: object
+export interface OpenWorkspace extends WorkspaceRegistration {
+  additionalProps: object
 }
 
 export interface WorkspaceRegistration {
@@ -54,14 +54,23 @@ function getTitleFromExtension(ext: ExtensionRegistration) {
   return ext.name;
 }
 
-export function launchPatientWorkspace(name: string, props?: object) {
+export function launchPatientWorkspace(name: string, additionalProps?: object) {
   const store = getWorkspaceStore();
   const state = store.getState();
   const workspace = getWorkspaceRegistration(name);
-  const newWorkspace = { ...workspace, props };
+  const newWorkspace = { ...workspace, additionalProps };
   if (state.openWorkspaces.length > 0) {
-    store.setState({ ...state, workspaceNeedingConfirmationToOpen: newWorkspace })
+    const existingIdx = state.openWorkspaces.findIndex(w => w.name = name);
+    if (existingIdx >= 0) {
+      console.log("focusing existing", workspace.name);
+      const openWorkspaces = [state.openWorkspaces[existingIdx], ...state.openWorkspaces.splice(existingIdx, 1)];
+      store.setState({ ...state, openWorkspaces });
+    } else {
+      console.log("asking confirmation for ", workspace.name);
+      store.setState({ ...state, workspaceNeedingConfirmationToOpen: newWorkspace })
+    }
   } else {
+    console.log("loading", workspace.name);
     store.setState({ ...state, openWorkspaces: [newWorkspace, ...state.openWorkspaces]})
   }
 };
@@ -90,14 +99,21 @@ export function closeAllWorkspaces() {
   store.setState({ openWorkspaces: [] });
 }
 
-export function renderWorkspace(domElement: HTMLElement, workspace: OpenWorkspaceInfo) {
+/**
+ * 
+ * @param domElement The node to render the workspace into
+ * @param workspace The thing to render. The only part that gets used here is the `load` function.
+ * @param props The props to pass to the component
+ * @returns 
+ */
+export function renderWorkspace(domElement: HTMLElement, workspace: OpenWorkspace, props: object) {
   let active = true;
   let parcel: Parcel | null = null;
 
   if (domElement) {
-    workspace.load().then(({ default: result }) => {
+    workspace.load().then(({ default: result, ...lifecycle }) => {
       if (active) {
-        parcel = mountRootParcel(result, { ...workspace.props, domElement })
+        parcel = mountRootParcel(result ?? lifecycle, { ...props, domElement })
       }
     });
     return () => {
@@ -123,9 +139,4 @@ export function getWorkspaceStore() {
   return getGlobalStore<WorkspaceStoreState>("workspace", { openWorkspaces: [], workspaceNeedingConfirmationToOpen: null });
 }
 
-
-
-
-function getPreferredWindowSize(ext: ExtensionRegistration) {
-  return ext.meta?.screenSize ?? WorkspaceWindowState.normal;
-}
+(window as any).workspaceStore = getWorkspaceStore();

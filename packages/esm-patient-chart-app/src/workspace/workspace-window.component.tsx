@@ -11,7 +11,7 @@ import { useContextWorkspace } from '../hooks/useContextWindowSize';
 import { useWorkspaces } from '../hooks/useWorkspaces';
 import { patientChartWorkspaceHeaderSlot } from '../constants';
 import { renderWorkspace, WorkspaceWindowState } from '@openmrs/esm-patient-common-lib';
-import styles from './context-workspace.scss';
+import styles from './workspace-window.scss';
 
 interface ContextWorkspaceParams {
   patientUuid: string;
@@ -35,7 +35,7 @@ const ContextWorkspace: React.FC<RouteComponentProps<ContextWorkspaceParams>> = 
   const normal = size === WorkspaceWindowState.normal;
 
   const props = React.useMemo(
-    () => ({ closeWorkspace: activeWorkspace.closeWorkspace, patientUuid, isTablet }),
+    () => activeWorkspace && { closeWorkspace: activeWorkspace.closeWorkspace, patientUuid, isTablet, ...activeWorkspace.additionalProps },
     [activeWorkspace, isTablet, patientUuid],
   );
 
@@ -52,7 +52,9 @@ const ContextWorkspace: React.FC<RouteComponentProps<ContextWorkspaceParams>> = 
   }, [workspaces.length, hidden, maximized, normal]);
 
   useEffect(() => {
-    return renderWorkspace(workspaceRef.current, activeWorkspace);
+    if (workspaceRef.current && activeWorkspace) {
+      return renderWorkspace(workspaceRef.current, activeWorkspace, props);
+    }
   }, [activeWorkspace]);
 
   useBodyScrollLock(active && !isDesktop(layout));
