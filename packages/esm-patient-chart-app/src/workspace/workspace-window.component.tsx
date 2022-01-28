@@ -7,37 +7,28 @@ import Maximize16 from '@carbon/icons-react/es/maximize/16';
 import Minimize16 from '@carbon/icons-react/es/minimize/16';
 import { ExtensionSlot, useLayoutType, useBodyScrollLock } from '@openmrs/esm-framework';
 import { isDesktop } from '../utils';
-import { useContextWorkspace } from '../hooks/useContextWindowSize';
+import { useWorkspaceWindowSize } from '../hooks/useWorkspaceWindowSize';
 import { useWorkspaces } from '../hooks/useWorkspaces';
 import { patientChartWorkspaceHeaderSlot } from '../constants';
-import { renderWorkspace, WorkspaceWindowState } from '@openmrs/esm-patient-common-lib';
+import { WorkspaceWindowState } from '@openmrs/esm-patient-common-lib';
 import styles from './workspace-window.scss';
+import { Workspace } from './workspace.component';
 
 interface ContextWorkspaceParams {
   patientUuid: string;
 }
 
-const ContextWorkspace: React.FC<RouteComponentProps<ContextWorkspaceParams>> = ({ match }) => {
+const WorkspaceWindow: React.FC<RouteComponentProps<ContextWorkspaceParams>> = ({ match }) => {
   const { t } = useTranslation();
   const layout = useLayoutType();
-  const isTablet = layout === 'tablet';
-  const workspaceRef = useRef<HTMLDivElement>();
 
   const { patientUuid } = match.params;
   const { active, workspaces } = useWorkspaces();
-  const { windowSize, updateWindowSize } = useContextWorkspace();
-  const { size } = windowSize;
+  const { windowSize, updateWindowSize } = useWorkspaceWindowSize();
 
-  const activeWorkspace = workspaces[0];
-
-  const hidden = size === WorkspaceWindowState.hidden;
-  const maximized = size === WorkspaceWindowState.maximized;
-  const normal = size === WorkspaceWindowState.normal;
-
-  const props = React.useMemo(
-    () => activeWorkspace && { closeWorkspace: activeWorkspace.closeWorkspace, patientUuid, isTablet, ...activeWorkspace.additionalProps },
-    [activeWorkspace, isTablet, patientUuid],
-  );
+  const hidden = windowSize.size === WorkspaceWindowState.hidden;
+  const maximized = windowSize.size === WorkspaceWindowState.maximized;
+  const normal = windowSize.size === WorkspaceWindowState.normal;
 
   const [isWorkspaceWindowOpen, setIsWorkspaceWindowOpen] = useState(false);
 
@@ -50,12 +41,6 @@ const ContextWorkspace: React.FC<RouteComponentProps<ContextWorkspaceParams>> = 
       setIsWorkspaceWindowOpen(false);
     }
   }, [workspaces.length, hidden, maximized, normal]);
-
-  useEffect(() => {
-    if (workspaceRef.current && activeWorkspace) {
-      return renderWorkspace(workspaceRef.current, activeWorkspace, props);
-    }
-  }, [activeWorkspace]);
 
   useBodyScrollLock(active && !isDesktop(layout));
 
@@ -76,9 +61,9 @@ const ContextWorkspace: React.FC<RouteComponentProps<ContextWorkspaceParams>> = 
         aria-label="Workspace Title"
         className={`${styles.header} ${maximized ? `${styles.fullWidth}` : `${styles.dynamicWidth}`}`}
       >
-        <HeaderName prefix="">{activeWorkspace?.title}</HeaderName>
+        <HeaderName prefix="">{workspaces[0]?.title}</HeaderName>
         <HeaderGlobalBar>
-          <ExtensionSlot extensionSlotName={patientChartWorkspaceHeaderSlot} state={props} />
+          <ExtensionSlot extensionSlotName={patientChartWorkspaceHeaderSlot} />
           <Button
             iconDescription={maximized ? t('minimize', 'Minimize') : t('maximize', 'Maximize')}
             hasIconOnly
@@ -98,11 +83,9 @@ const ContextWorkspace: React.FC<RouteComponentProps<ContextWorkspaceParams>> = 
           />
         </HeaderGlobalBar>
       </Header>
-      <div className={`${styles.fixed} ${maximized && !isTablet ? `${styles.fullWidth}` : `${styles.dynamicWidth}`}`}>
-        <div ref={workspaceRef}></div>
-      </div>
+      { workspaces.map((w, idx) => <Workspace key={w.name} workspace={w} patientUuid={patientUuid} active={idx === 0} />)}
     </aside>
   );
 };
 
-export default ContextWorkspace;
+export default WorkspaceWindow;

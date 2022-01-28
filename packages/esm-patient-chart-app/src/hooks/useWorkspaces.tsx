@@ -5,16 +5,12 @@ import { getWorkspaceStore, closeWorkspace, OpenWorkspace } from '@openmrs/esm-p
 export interface WorkspacesInfo {
   active: boolean;
   windowState: WorkspaceWindowState;
-  workspaces: Array<Workspace>;
+  workspaces: Array<OpenWorkspace>;
   workspaceNeedingConfirmationToOpen: OpenWorkspace;
 }
 
-export interface Workspace extends OpenWorkspace {
-  closeWorkspace(): void;
-}
-
 export function useWorkspaces(): WorkspacesInfo {
-  const [workspaces, setWorkspaces] = useState<Array<Workspace>>([]);
+  const [workspaces, setWorkspaces] = useState<Array<OpenWorkspace>>([]);
   const [workspaceNeedingConfirmationToOpen, setWorkspaceNeedingConfirmationToOpen] = useState<OpenWorkspace>(null);
 
   useEffect(() => {

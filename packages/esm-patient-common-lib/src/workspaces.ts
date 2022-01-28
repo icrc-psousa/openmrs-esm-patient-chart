@@ -8,7 +8,8 @@ export interface WorkspaceStoreState {
 }
 
 export interface OpenWorkspace extends WorkspaceRegistration {
-  additionalProps: object
+  additionalProps: object;
+  closeWorkspace(): void;
 }
 
 export interface WorkspaceRegistration {
@@ -18,10 +19,13 @@ export interface WorkspaceRegistration {
   load(): Promise<any>
 }
 
-let registeredWorkspaces = {};
+let registeredWorkspaces: Record<string, WorkspaceRegistration> = {};
 
 export function registerWorkspace(workspace: WorkspaceRegistration) {
-  registeredWorkspaces[workspace.name] = { ...workspace, preferredWindowSize: workspace.preferredWindowSize ?? WorkspaceWindowState.normal };
+  registeredWorkspaces[workspace.name] = {
+    ...workspace,
+    preferredWindowSize: workspace.preferredWindowSize ?? WorkspaceWindowState.normal
+  };
 }
 
 /**
@@ -58,12 +62,18 @@ export function launchPatientWorkspace(name: string, additionalProps?: object) {
   const store = getWorkspaceStore();
   const state = store.getState();
   const workspace = getWorkspaceRegistration(name);
-  const newWorkspace = { ...workspace, additionalProps };
+  const newWorkspace = {
+    ...workspace,
+    closeWorkspace: () => closeWorkspace(name),
+    additionalProps
+  };
   if (state.openWorkspaces.length > 0) {
     const existingIdx = state.openWorkspaces.findIndex(w => w.name = name);
     if (existingIdx >= 0) {
       console.log("focusing existing", workspace.name);
-      const openWorkspaces = [state.openWorkspaces[existingIdx], ...state.openWorkspaces.splice(existingIdx, 1)];
+      const restOfWorkspaces = [...state.openWorkspaces];
+      restOfWorkspaces.splice(existingIdx, 1);
+      const openWorkspaces = [state.openWorkspaces[existingIdx], ...restOfWorkspaces];
       store.setState({ ...state, openWorkspaces });
     } else {
       console.log("asking confirmation for ", workspace.name);
@@ -99,14 +109,20 @@ export function closeAllWorkspaces() {
   store.setState({ openWorkspaces: [] });
 }
 
+export interface WorkspaceParcel {
+  unmount: () => void;
+  update: (props) => Promise<any>;
+}
+
 /**
+ * Renders the given workspace object into the given dom element.
+ * Passes the props through to the component.
  * 
  * @param domElement The node to render the workspace into
  * @param workspace The thing to render. The only part that gets used here is the `load` function.
  * @param props The props to pass to the component
- * @returns 
  */
-export function renderWorkspace(domElement: HTMLElement, workspace: OpenWorkspace, props: object) {
+export function renderWorkspace(domElement: HTMLElement, workspace: OpenWorkspace, props: object): WorkspaceParcel {
   let active = true;
   let parcel: Parcel | null = null;
 
@@ -116,7 +132,8 @@ export function renderWorkspace(domElement: HTMLElement, workspace: OpenWorkspac
         parcel = mountRootParcel(result ?? lifecycle, { ...props, domElement })
       }
     });
-    return () => {
+    return { unmount: () => {
+      console.log("unmounting");
       active = false;
       if (parcel) {
         if (parcel.getStatus() !== "MOUNTED") {
@@ -129,7 +146,9 @@ export function renderWorkspace(domElement: HTMLElement, workspace: OpenWorkspac
           parcel.unmount();
         }
       }
-    };
+    },
+    update: (...args) => parcel && parcel.update(...args)
+  };
   } else {
     throw new Error(`Can't render workspace ${workspace.name} into non-existant window.`);
   }

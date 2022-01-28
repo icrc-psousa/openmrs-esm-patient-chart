@@ -2,17 +2,17 @@ import React, { createContext, useContext, useMemo, useEffect, useCallback } fro
 import { useWorkspaces } from './useWorkspaces';
 import { WorkspaceWindowState } from '@openmrs/esm-patient-common-lib';
 
-interface WindowSize {
+interface WorkspaceWindowSize {
   size: WorkspaceWindowState;
 }
 
-interface ContextWindowSizeContextShape {
-  windowSize: WindowSize;
+interface WorkspaceWindowSizeContext {
+  windowSize: WorkspaceWindowSize;
   updateWindowSize?(value: WorkspaceWindowState): any;
-  openWindows: number;
+  active: boolean;
 }
 
-const reducer = (state: WindowSize, action: WorkspaceWindowState) => {
+const reducer = (state: WorkspaceWindowSize, action: WorkspaceWindowState) => {
   switch (action) {
     case WorkspaceWindowState.minimized:
     case WorkspaceWindowState.reopened:
@@ -22,28 +22,28 @@ const reducer = (state: WindowSize, action: WorkspaceWindowState) => {
   }
 };
 
-const ContextWindowSizeContext = createContext<ContextWindowSizeContextShape>({
+const WorkspaceWindowSizeContext = createContext<WorkspaceWindowSizeContext>({
   windowSize: { size: WorkspaceWindowState.normal },
-  openWindows: 0,
+  active: false
 });
 
-export const useContextWorkspace = () => {
-  const value = useContext(ContextWindowSizeContext);
+export const useWorkspaceWindowSize = () => {
+  const value = useContext(WorkspaceWindowSizeContext);
   return value;
 };
 
-export const ContextWindowSizeProvider: React.FC = ({ children }) => {
-  const initialValue: WindowSize = { size: WorkspaceWindowState.normal };
+export const WorkspaceWindowSizeProvider: React.FC = ({ children }) => {
+  const initialValue: WorkspaceWindowSize = { size: WorkspaceWindowState.normal };
   const [contextWorkspaceWindowSize, updateContextWorkspaceWindowSize] = React.useReducer(reducer, initialValue);
-  const { workspaces: extensions, windowState: screenMode } = useWorkspaces();
+  const { workspaces, windowState, active } = useWorkspaces();
 
   useEffect(() => {
-    if (extensions.length > 0 && screenMode === WorkspaceWindowState.maximized) {
+    if (workspaces.length > 0 && windowState === WorkspaceWindowState.maximized) {
       updateContextWorkspaceWindowSize(WorkspaceWindowState.maximized);
     } else {
       updateContextWorkspaceWindowSize(WorkspaceWindowState.reopened);
     }
-  }, [extensions.length, screenMode]);
+  }, [workspaces.length, windowState]);
 
   const updateWindowSize = useCallback((action: WorkspaceWindowState) => {
     updateContextWorkspaceWindowSize(action);
@@ -53,9 +53,9 @@ export const ContextWindowSizeProvider: React.FC = ({ children }) => {
     return {
       windowSize: contextWorkspaceWindowSize,
       updateWindowSize: updateWindowSize,
-      openWindows: extensions.length,
+      active
     };
-  }, [contextWorkspaceWindowSize, extensions.length, updateWindowSize]);
+  }, [contextWorkspaceWindowSize, workspaces.length, updateWindowSize]);
 
-  return <ContextWindowSizeContext.Provider value={windowSizeValue}>{children}</ContextWindowSizeContext.Provider>;
+  return <WorkspaceWindowSizeContext.Provider value={windowSizeValue}>{children}</WorkspaceWindowSizeContext.Provider>;
 };

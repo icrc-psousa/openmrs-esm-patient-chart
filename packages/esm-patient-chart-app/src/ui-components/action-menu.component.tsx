@@ -6,7 +6,7 @@ import styles from './action-menu.component.scss';
 import { ExtensionSlot, useLayoutType } from '@openmrs/esm-framework';
 import { HeaderPanel, Button } from 'carbon-components-react';
 import { isDesktop } from '../utils';
-import { useContextWorkspace } from '../hooks/useContextWindowSize';
+import { useWorkspaceWindowSize } from '../hooks/useWorkspaceWindowSize';
 import { useWorkspaces } from '../hooks/useWorkspaces';
 import { useTranslation } from 'react-i18next';
 import { WorkspaceWindowState } from '@openmrs/esm-patient-common-lib';
@@ -15,34 +15,31 @@ interface ActionMenuInterface {
   open: boolean;
 }
 
-export const CHARTS_DRAWER_SLOT = 'drawer-slot';
-export const CHARTS_ACTION_MENU_ITEMS_SLOT = 'action-menu-items-slot';
-
 export const ActionMenu: React.FC<ActionMenuInterface> = ({ open }) => {
   const { t } = useTranslation();
   const layout = useLayoutType();
-  const { windowState: screenMode, active } = useWorkspaces();
-  const { openWindows, updateWindowSize, windowSize } = useContextWorkspace();
+  const { windowState, active } = useWorkspaces();
+  const { updateWindowSize, windowSize } = useWorkspaceWindowSize();
 
-  const checkViewMode = () => {
+  const toggleViewMode = () => {
     if (active) {
       if (windowSize.size === WorkspaceWindowState.maximized) {
         updateWindowSize(WorkspaceWindowState.hidden);
       } else if (windowSize.size === WorkspaceWindowState.normal) {
         updateWindowSize(WorkspaceWindowState.hidden);
       } else {
-        updateWindowSize(screenMode);
+        updateWindowSize(windowState);
       }
     }
   };
 
   const menu = isDesktop(layout) ? (
     <aside className={styles.rightSideNav}>
-      <ExtensionSlot extensionSlotName={CHARTS_ACTION_MENU_ITEMS_SLOT} />
+      <ExtensionSlot extensionSlotName={'action-menu-items-slot'} />
       <Button
-        onClick={checkViewMode}
+        onClick={toggleViewMode}
         iconDescription={t('workspaceItems', 'Workspace items')}
-        className={`${styles.iconButton} ${openWindows > 0 && styles.activeIconButton} `}
+        className={`${styles.iconButton} ${active && styles.activeIconButton} `}
         kind="ghost"
         hasIconOnly
         tooltipPosition="bottom"
@@ -68,7 +65,7 @@ export const ActionMenu: React.FC<ActionMenuInterface> = ({ open }) => {
     <>
       {menu}
       <HeaderPanel className={styles.actionPanel} expanded={open} aria-label="Drawer">
-        <ExtensionSlot extensionSlotName={CHARTS_DRAWER_SLOT} />
+        <ExtensionSlot extensionSlotName={'drawer-slot'} />
       </HeaderPanel>
     </>
   );
