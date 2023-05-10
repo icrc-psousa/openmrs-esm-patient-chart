@@ -2,9 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpParams, HttpClient, HttpHeaders } from '@angular/common/http';
 
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
 import { WindowRef } from '../window-ref';
-import {Encounter, Person, PersonUpdate} from '../types';
+import { Encounter, Person, PersonUpdate } from '../types';
 
 @Injectable()
 export class VisitResourceService {
@@ -24,26 +23,14 @@ export class VisitResourceService {
     return this.http.get<Person>(url, { params });
   }
 
-  public postVisitByUuid(uuid: string, payload: any): Observable<any> {
-
+  public updateVisit(uuid: string, payload: any): Observable<any> {
     if (!payload) {
       return null;
     }
-    let url = this.getUrl() + 'visit';
+
+    let url = this.getUrl();
     url += '/' + uuid;
     const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
     return this.http.post<Encounter>(url, JSON.stringify(payload), { headers });
-  }
-
-  public saveUpdatePerson(uuid: string, payload: PersonUpdate): Observable<Person> | null {
-    if (!payload || !uuid) {
-      return null;
-    }
-
-    const url = `${this.getUrl()}/${uuid}`;
-    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
-    return this.http
-      .post<{ person: Person }>(url, JSON.stringify(payload), { headers })
-      .pipe(map((response) => response.person));
   }
 }
