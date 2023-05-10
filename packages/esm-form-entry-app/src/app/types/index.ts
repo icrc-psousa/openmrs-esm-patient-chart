@@ -261,6 +261,7 @@ export interface Concept {
 }
 
 export interface Encounter {
+  visit: any;
   uuid: string;
   encounterDatetime: string;
   encounterProviders: Array<{
