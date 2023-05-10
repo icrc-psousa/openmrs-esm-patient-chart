@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 
 import { forkJoin, Observable, of, from } from 'rxjs';
-import { catchError, mergeMap } from 'rxjs/operators';
+import {catchError, flatMap, map, mapTo, mergeMap, switchMap, take} from 'rxjs/operators';
 import { EncounterAdapter, PersonAttribuAdapter, Form } from '@openmrs/ngx-formentry';
 import { NodeBase } from '@openmrs/ngx-formentry/form-entry/form-factory/form-node';
 import { EncounterResourceService } from '../openmrs-api/encounter-resource.service';
@@ -19,6 +19,8 @@ import cloneDeep from 'lodash-es/cloneDeep';
 import { mutateEncounterCreateToPartialEncounter } from '../offline/syncItemMutation';
 import { SingleSpaPropsService } from '../single-spa-props/single-spa-props.service';
 import { v4 } from 'uuid';
+import { VisitResourceService } from '../openmrs-api/visit-resource.service';
+
 
 /**
  * The result of submitting a form via the {@link FormSubmissionService.submitPayload} function.
@@ -36,6 +38,7 @@ export class FormSubmissionService {
     private readonly personResourceService: PersonResourceService,
     private readonly formDataSourceService: FormDataSourceService,
     private readonly singleSpaPropsService: SingleSpaPropsService,
+    private readonly visitResourceService: VisitResourceService,
   ) {}
 
   public submitPayload(form: Form): Observable<FormSubmissionResult> {
@@ -115,20 +118,145 @@ export class FormSubmissionService {
     });
   }
 
-  private submitEncounter(encounterCreate: EncounterCreate): Observable<Encounter | undefined> {
+  private submitEncounter(encounterCreate: EncounterCreate): Observable<any | undefined> {
     if (!encounterCreate) {
       return of(undefined);
     }
 
-    if (encounterCreate.uuid) {
-      return this.encounterResourceService
-        .updateEncounter(encounterCreate.uuid, encounterCreate)
-        .pipe(catchError((res) => this.throwUserFriendlyError(res)));
-    } else {
-      return this.encounterResourceService
-        .saveEncounter(encounterCreate)
-        .pipe(catchError((res) => this.throwUserFriendlyError(res)));
-    }
+
+    return this.encounterResourceService
+      .getEncounterByUuid(encounterCreate.uuid)
+      .pipe(
+        take(1),
+        flatMap((encounter) => {
+          if (new Date(encounterCreate.encounterDatetime) < new Date(encounter.visit.startDatetime)) {
+            encounter.visit.startDatetime = encounterCreate.encounterDatetime;
+            return this.visitResourceService.postVisitByUuid(encounter.visit.uuid, encounter.visit).pipe(mapTo(encounter));
+          } else {
+            return of(encounter);
+          }
+        }),
+        flatMap((encounter) => {
+          if (encounter) {
+            // update the encounter
+            return this.encounterResourceService
+              .updateEncounter(encounterCreate.uuid, encounterCreate)
+              .pipe(catchError((res) => this.throwUserFriendlyError(res)));
+          } else {
+            // save a new encounter
+            return this.encounterResourceService
+              .saveEncounter(encounterCreate)
+              .pipe(catchError((res) => this.throwUserFriendlyError(res)));
+          }
+        })
+      );
+
+
+
+    // return this.encounterResourceService
+    //   .getEncounterByUuid(encounterCreate.uuid)
+    //   .pipe(
+    //     take(1),
+    //     flatMap((encounter) => {
+    //
+    //
+    //           if (new Date(encounterCreate.encounterDatetime) < new Date(encounter.visit.startDatetime)) {
+    //             encounter.visit.startDatetime = encounterCreate.encounterDatetime;
+    //             this.visitResourceService.postVisitByUuid(encounter.visit.uuid, encounter.visit);
+    //           }
+    //
+    //
+    //
+    //
+    //       // do something with encounter
+    //       if (encounter) {
+    //         // update the encounter
+    //         return this.encounterResourceService
+    //           .updateEncounter(encounterCreate.uuid, encounterCreate)
+    //           .pipe(catchError((res) => this.throwUserFriendlyError(res)));
+    //       } else {
+    //         // save a new encounter
+    //         return this.encounterResourceService
+    //           .saveEncounter(encounterCreate)
+    //           .pipe(catchError((res) => this.throwUserFriendlyError(res)));
+    //       }
+    //     })
+    //   );
+    //
+    // return this.encounterResourceService
+    //   .getEncounterByUuid(encounterCreate.uuid)
+    //   .pipe(
+    //     take(1),
+    //     flatMap((encounter) => {
+    //
+    //       let a = this.visitResourceService
+    //         .getVisitByUuid(encounterCreate.visit).pipe(map((visit) => {
+    //           visit = visit;
+    //
+    //           if (new Date(encounterCreate.encounterDatetime) < new Date(visit.startDatetime)) {
+    //             visit.startDatetime = encounterCreate.encounterDatetime;
+    //             this.visitResourceService.postVisitByUuid(encounterCreate.visit, visit);
+    //           }
+    //
+    //           let b = new Date(encounterCreate.encounterDatetime) < new Date(visit.startDatetime);
+    //           let b1 = new Date(encounterCreate.encounterDatetime) > new Date(visit.stopDatetime);
+    //           let b4 = new Date(encounterCreate.encounterDatetime) > new Date(visit.startDatetime);
+    //         }));
+    //
+    //
+    //       // do something with encounter
+    //       if (encounter) {
+    //         // update the encounter
+    //         return this.encounterResourceService
+    //           .updateEncounter(encounterCreate.uuid, encounterCreate)
+    //           .pipe(catchError((res) => this.throwUserFriendlyError(res)));
+    //       } else {
+    //         // save a new encounter
+    //         return this.encounterResourceService
+    //           .saveEncounter(encounterCreate)
+    //           .pipe(catchError((res) => this.throwUserFriendlyError(res)));
+    //       }
+    //     })
+    //   );
+
+    // this.encounterResourceService
+    //   .getEncounterByUuid(encounterCreate.uuid)
+    //   .pipe(take(1))
+    //   .subscribe((encounter) => {
+    //     encounter
+    //   });
+
+
+    // let a = this.visitResourceService
+    //   .getVisitByUuid(encounterCreate.visit).pipe(map((visit) => {
+    //     visit = visit;
+    //
+    //     if (new Date(encounterCreate.encounterDatetime) < new Date(visit.startDatetime)) {
+    //       visit.startDatetime = encounterCreate.encounterDatetime;
+    //       this.visitResourceService.postVisitByUuid(encounterCreate.visit, visit);
+    //     }
+    //
+    //     let b = new Date(encounterCreate.encounterDatetime) < new Date(visit.startDatetime);
+    //     let b1 = new Date(encounterCreate.encounterDatetime) > new Date(visit.stopDatetime);
+    //     let b4 = new Date(encounterCreate.encounterDatetime) > new Date(visit.startDatetime);
+    //
+    //
+    //
+    //   }));
+
+    // if (encounterCreate.uuid) {
+    //   return this.encounterResourceService
+    //     .updateEncounter(encounterCreate.uuid, encounterCreate)
+    //     .pipe(catchError((res) => this.throwUserFriendlyError(res)));
+    // } else {
+    //   return this.encounterResourceService
+    //     .saveEncounter(encounterCreate)
+    //     .pipe(catchError((res) => this.throwUserFriendlyError(res)));
+    // }
+
+    //return a;
+
+
   }
 
   private submitPersonUpdate(personUpdate: PersonUpdate): Observable<Person | undefined> {

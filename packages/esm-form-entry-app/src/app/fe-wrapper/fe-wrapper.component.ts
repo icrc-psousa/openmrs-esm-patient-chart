@@ -16,6 +16,8 @@ import { SingleSpaPropsService } from '../single-spa-props/single-spa-props.serv
 import { CreateFormParams, FormCreationService } from '../form-creation/form-creation.service';
 import { ConceptService } from '../services/concept.service';
 import { TranslateService } from '@ngx-translate/core';
+import { VisitResourceService } from '../openmrs-api/visit-resource.service';
+import {PersonResourceService} from "../openmrs-api/person-resource.service";
 
 type FormState =
   | 'initial'
@@ -57,6 +59,7 @@ export class FeWrapperComponent implements OnInit, OnDestroy {
     private readonly conceptService: ConceptService,
     private readonly translateService: TranslateService,
     private readonly ngZone: NgZone,
+    private readonly visitResourceService: VisitResourceService,
   ) {}
 
   public ngOnInit() {

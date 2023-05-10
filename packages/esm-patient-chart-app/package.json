@@ -10,7 +10,7 @@
     "start": "openmrs develop",
     "serve": "webpack serve --mode=development",
     "debug": "npm run serve",
-    "build": "webpack --mode production",
+    "build": "webpack --mode development",
     "analyze": "webpack --mode=production --env analyze=true",
     "lint": "eslint src --ext tsx,ts --fix --max-warnings=0",
     "typescript": "tsc",

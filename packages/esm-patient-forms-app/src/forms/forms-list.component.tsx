@@ -37,6 +37,8 @@ const FormsList: React.FC<FormsListProps> = ({ currentVisit, htmlFormEntryForms,
 
   const isTablet = useLayoutType() === 'tablet';
 
+  alert('test123');
+
   const handleFormOpen = useCallback(
     (formUuid, encounterUuid, formName) => {
       launchFormEntryOrHtmlForms(

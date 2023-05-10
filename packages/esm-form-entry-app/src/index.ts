@@ -49,12 +49,17 @@ function setupOpenMRS() {
 
   defineConfigSchema(moduleName, configSchema);
 
+  function handleEncounterCreate () {
+    alert('test');
+  }
+
   return {
     extensions: [
       {
         name: 'form-widget',
         slot: 'form-widget-slot',
         load: () => import('./bootstrap'),
+        handleEncounterCreate: handleEncounterCreate,
         online: {
           isOffline: false,
         },
