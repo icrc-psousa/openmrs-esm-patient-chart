@@ -129,6 +129,10 @@ export class FormSubmissionService {
     }
   }
 
+  private confirmVisitDateAdjustment() {
+    return confirm("The encounter date falls outside the designated visit date range. Would you like to modify the visit date to accommodate the new encounter date?");
+  }
+
   private submitEncounter(encounterCreate: EncounterCreate): Observable<any | undefined> {
     if (!encounterCreate) {
       return of(undefined);
@@ -138,12 +142,13 @@ export class FormSubmissionService {
       return this.encounterResourceService.getEncounterByUuid(encounterCreate.uuid).pipe(
         take(1),
         mergeMap((encounter) => {
-          if (new Date(encounterCreate.encounterDatetime) < new Date(encounter.visit.startDatetime)) {
+
+          if (new Date(encounterCreate.encounterDatetime) < new Date(encounter.visit.startDatetime) && this.confirmVisitDateAdjustment()) {
             encounter.visit.startDatetime = encounterCreate.encounterDatetime;
             return this.visitResourceService.updateVisit(encounter.visit.uuid, encounter.visit).pipe(mapTo(encounter));
           } else if (
             encounter.visit.stopDatetime &&
-            new Date(encounterCreate.encounterDatetime) > new Date(encounter.visit.stopDatetime)
+            new Date(encounterCreate.encounterDatetime) > new Date(encounter.visit.stopDatetime) && this.confirmVisitDateAdjustment()
           ) {
             encounter.visit.stopDatetime = encounterCreate.encounterDatetime;
             return this.visitResourceService.updateVisit(encounter.visit.uuid, encounter.visit).pipe(mapTo(encounter));
